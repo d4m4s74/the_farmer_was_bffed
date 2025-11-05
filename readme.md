@@ -20,7 +20,7 @@ Using `.` uses the current memory value to affect the game.
 `use_item(Items.Weird_Substance,n)` where n is weird substance needed to spawn a full maze : 68  
 `change_hat(Hat)`                                                                          : 69 + hat `{0:Hats.Straw_Hat,1:Dinosaur_Hat}`  
 `plant(Entity)`                                                                            : 128 + plant ID  
-`plants = {0:Entities.Grass,1:Entities.Bush,2:Entities.Tree,3:Entities.Carrot,4:Entities.Pumpkin,5:Entities.Cactus,6:Entities.Sunflower}`  
+`{0:Entities.Grass,1:Entities.Bush,2:Entities.Tree,3:Entities.Carrot,4:Entities.Pumpkin,5:Entities.Cactus,6:Entities.Sunflower}`  
 
 ## Read values
 
