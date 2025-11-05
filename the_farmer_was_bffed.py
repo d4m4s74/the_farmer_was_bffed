@@ -191,6 +191,10 @@ def the_farmer_was_brainfucked(code):
                 harvest()
                 plant_info = []
                 info_ptr = 0
+            elif memory[data_ptr] == 2:
+                clear()
+                plant_info = []
+                info_ptr = 0
             elif memory[data_ptr] >= 4 and memory[data_ptr] < 8:
                 move(moves[memory[data_ptr]])
                 plant_info = []
