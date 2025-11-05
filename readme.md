@@ -8,10 +8,12 @@ Write your brainfuck code and minify it to a single string. I've included a mini
 
 Either `import the_farmer_was_brainfucked` and run `the_farmer_was_brainfucked(code)` or replace the `code` string with your own string and run the file.
 
-## Write values
+## Opcodes
 
+Using `.` uses the current memory value to affect the game.  
 `till()` : 0  
 `harvest()` : 1  
+`clear()`: 2
 `move(Direction)`   : 4 + direction `{0:North,1:East,3:South,3:West}`  
 `swap(Direction)`   : 32 + direction  
 `use_item(Item)`    : 64 + item `{0:Items.Water,1:Items.Fertilizer,2:Items.Weird_Substance}`  
@@ -21,6 +23,7 @@ Generate ws*ws maze : 68
 
 ## Read values
 
+`,`sets the memory location to information about game.  
 Read values depend on the plant under the drone.
 
 First read is always a bitmask of water, entity, tilled state and harvestability: WWEEEETH  
