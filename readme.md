@@ -62,6 +62,10 @@ Data pointer will be set to temp cell
  X will end up empty. Y is Y - X. Z is 1 if X > Y or 0 if X <= Y. Can also be used for if X > Y elif X == Y because the Y cell will be 0 if X and Y are equal.  
  Function based on code from [Esolangs Wiki](https://esolangs.org/wiki/Brainfuck_algorithms#z_=_x_%3E_y).
 
+ `>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+`
+ Not hardcoded yet, but useful to have. Z = X >= Y  
+ X and Y will be empty, Z is the result, the two next cells are empty.
+
 ## Non-brainfuck commands
 
 I've added `?`. It does nothing, but it allows you to set a breakpoint at `pass #put breakpoint here` to pause the code in order to check memory, pointers, etc or step through the code.
