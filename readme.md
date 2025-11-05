@@ -14,12 +14,13 @@ Using `.` uses the current memory value to affect the game.
 `till()` : 0  
 `harvest()` : 1  
 `clear()`: 2  
-`move(Direction)`   : 4 + direction `{0:North,1:East,3:South,3:West}`  
-`swap(Direction)`   : 32 + direction  
-`use_item(Item)`    : 64 + item `{0:Items.Water,1:Items.Fertilizer,2:Items.Weird_Substance}`  
-Generate ws*ws maze : 68  
-`change_hat(Hat)`   : 69 + hat `{0:Hats.Straw_Hat,1:Dinosaur_Hat}`  
-`plant(Entity)`     : 128 + plant `{0:Entities.Grass,1:Entities.Bush,2:Entities.Tree,3:Entities.Carrot,4:Entities.Pumpkin,5:Entities.Cactus,6:Entities.Sunflower}`  
+`move(Direction)`                                                                          : 4 + direction `{0:North,1:East,3:South,3:West}`  
+`swap(Direction)`                                                                          : 32 + direction  
+`use_item(Item)`                                                                           : 64 + item `{0:Items.Water,1:Items.Fertilizer,2:Items.Weird_Substance}`  
+`use_item(Items.Weird_Substance,n)` where n is weird substance needed to spawn a full maze : 68  
+`change_hat(Hat)`                                                                          : 69 + hat `{0:Hats.Straw_Hat,1:Dinosaur_Hat}`  
+`plant(Entity)`                                                                            : 128 + plant ID 
+`plants = {0:Entities.Grass,1:Entities.Bush,2:Entities.Tree,3:Entities.Carrot,4:Entities.Pumpkin,5:Entities.Cactus,6:Entities.Sunflower}`  
 
 ## Read values
 
