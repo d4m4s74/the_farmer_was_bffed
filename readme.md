@@ -13,7 +13,7 @@ Either `import the_farmer_was_brainfucked` and run `the_farmer_was_brainfucked(c
 Using `.` uses the current memory value to affect the game.  
 `till()` : 0  
 `harvest()` : 1  
-`clear()`: 2
+`clear()`: 2  
 `move(Direction)`   : 4 + direction `{0:North,1:East,3:South,3:West}`  
 `swap(Direction)`   : 32 + direction  
 `use_item(Item)`    : 64 + item `{0:Items.Water,1:Items.Fertilizer,2:Items.Weird_Substance}`  
