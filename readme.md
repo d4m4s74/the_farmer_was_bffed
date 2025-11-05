@@ -51,6 +51,8 @@ Y will be left empty, data pointer will be at Y
 If the next two cells are not empty the copy will be incorrect and the original data will be destroyed.  
 Data pointer will be set to temp cell
 
+`[>>+>+<<<-]>>>[<<<+>>>-]` : Copy bytes 2 cells over (see above)
+
 `>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]` : Z = X > Y  
  First cell is X, second cell is Y, third cell is Z, next two cells are used as temp data and will be emptied.  
  X will end up empty. Y is Y - X. Z is 1 if X > Y or 0 if X <= Y. Can also be used for if X > Y elif X == Y because the Y cell will be 0 if X and Y are equal.  
