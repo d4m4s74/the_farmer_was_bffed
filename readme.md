@@ -14,7 +14,7 @@ Using `.` uses the current memory value to affect the game.
 `till()` : 0  
 `harvest()` : 1  
 `clear()`: 2  
-`move(Direction)`                                                                          : 4 + direction `{0:North,1:East,3:South,3:West}`  
+`move(Direction)`                                                                          : 4 + direction `{0:North,1:East,2:South,3:West}`  
 `swap(Direction)`                                                                          : 32 + direction  
 `use_item(Item)`                                                                           : 64 + item `{0:Items.Water,1:Items.Fertilizer,2:Items.Weird_Substance}`  
 `use_item(Items.Weird_Substance,n)` where n is weird substance needed to spawn a full maze : 68  
