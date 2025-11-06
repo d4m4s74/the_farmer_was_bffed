@@ -51,6 +51,8 @@ I have hardcoded some brainfuck functions for speed efficiency:
 `[-<->]` Subtract Y from X  
 Y will be left empty, data pointer will be at Y
 
+`[<+>-]` and `[>+<-]` add y to x (Used for shifting numbers to the left or right)
+
 `[>+>+<<-]>>[<<+>>-]` :  Copy byte to next memory cell, assuming the next two cells are already empty.  
 If the next two cells are not empty the copy will be incorrect and the original data will be destroyed.  
 Data pointer will be set to temp cell
