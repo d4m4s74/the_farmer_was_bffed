@@ -86,13 +86,18 @@ def the_farmer_was_brainfucked(code):
     pumpkins = []
     next_pumpkin_number = 0
     bracket_partners = dict()
+    calc_brackets = dict()
+    mem_moves = dict()
+    mem_changes = dict()
     while ptr < code_length:
         if code[ptr] == '?':
             pass #put breakpoint here
             ptr += 1
         elif code[ptr] == '>':
+            if ptr in mem_moves:
+                data_ptr, ptr = mem_moves[ptr]
             # hardcoded comparison because otherwise it takes a full minute
-            if code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
+            elif code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
                 pos0 = 0
                 pos1 = memory[data_ptr] - memory[data_ptr+1]
                 if memory[data_ptr] > memory[data_ptr+1]:
@@ -108,25 +113,48 @@ def the_farmer_was_brainfucked(code):
                 memory[data_ptr+4] = pos5
                 ptr = ptr + 63
             else:
+                start = ptr
                 while code[ptr] == '>':
                     data_ptr += 1
                     if data_ptr == len(memory):
                         memory.append(0)
                     ptr += 1
+                mem_moves[start] = (data_ptr, ptr)
         elif code[ptr] == '<':
-            while code[ptr] == '<':
-                data_ptr -= 1
-                ptr += 1
+            if ptr in mem_moves:
+                data_ptr, ptr = mem_moves[ptr]
+            else:
+                start = ptr
+                while code[ptr] == '<':
+                    data_ptr -= 1
+                    ptr += 1
+                mem_moves[start] = (data_ptr, ptr)
         elif code[ptr] == '+':
-            while code[ptr] == '+':
-                memory[data_ptr] += 1
-                ptr += 1
-            memory[data_ptr] = memory[data_ptr] % 256
+            if ptr in mem_changes:
+                change, ptr = mem_changes[ptr]
+                memory[data_ptr] = (memory[data_ptr] + change) % 256
+            else:
+                start = ptr
+                change = 0
+                while code[ptr] == '+':
+                    memory[data_ptr] += 1
+                    change += 1
+                    ptr += 1
+                mem_changes[start] = (change, ptr)
+                memory[data_ptr] = memory[data_ptr] % 256
         elif code[ptr] == '-':
-            while code[ptr] == '-':
-                memory[data_ptr] -= 1
-                ptr += 1
-            memory[data_ptr] = memory[data_ptr] % 256
+            if ptr in mem_changes:
+                change, ptr = mem_changes[ptr]
+                memory[data_ptr] = (memory[data_ptr] + change) % 256
+            else:
+                start = ptr
+                change = 0
+                while code[ptr] == '-':
+                    memory[data_ptr] -= 1
+                    change -= 1
+                    ptr += 1
+                mem_changes[start] = (change, ptr)
+                memory[data_ptr] = memory[data_ptr] % 256
         elif code[ptr] == '[':
             if memory[data_ptr] == 0:
                 if ptr in bracket_partners:
@@ -143,35 +171,82 @@ def the_farmer_was_brainfucked(code):
                     bracket_partners[start] = ptr
                     bracket_partners[ptr] = start
             else:
-                if code[ptr+1] == '-' and code[ptr+2] == ']':
+                if ptr in calc_brackets:
+                    mem_plus, mem_minus, base_changes, base_ptr, new_ptr = calc_brackets[ptr]
+                    value = memory[base_ptr] // base_changes
+                    for cptr in mem_minus:
+                        memory[cptr] = (memory[cptr] - value) % 256
+                    for cptr in mem_plus:
+                        memory[cptr] = (memory[cptr] + value) % 256
+                    ptr = new_ptr
+                elif code[ptr+1] == '-' and code[ptr+2] == ']':
                     memory[data_ptr] = 0
                     ptr += 2
-                elif code[ptr:ptr+6] == '[-<->]':
-                    memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
-                    memory[data_ptr] = 0
-                    ptr += 5
-                elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
-                    #copy value to next memory cell
-                    memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
-                    memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
-                    memory[data_ptr + 2] = 0
-                    data_ptr += 2
-                    ptr += 18
-                elif code[ptr:ptr+24] == '[>>+>+<<<-]>>>[<<<+>>>-]':
-                    #copy value two memory cells to the right TODO: make value copy universal
-                    memory[data_ptr + 2] = memory[data_ptr] + memory[data_ptr+2]
-                    memory[data_ptr] = memory[data_ptr] + memory[data_ptr+3]
-                    memory[data_ptr + 3] = 0
-                    data_ptr += 3
-                    ptr += 23
-                elif code[ptr:ptr+6] == '[>+<-]':
-                    memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
-                    memory[data_ptr] = 0
-                    ptr += 5
-                elif code[ptr:ptr+6] == '[<+>-]':
-                    memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
-                    memory[data_ptr] = 0
-                    ptr += 5
+                elif ptr not in bracket_partners:
+                    if code[ptr:ptr+6] == '[-<->]':
+                        memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+                        #copy value to next memory cell
+                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
+                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
+                        memory[data_ptr + 2] = 0
+                        data_ptr += 2
+                        ptr += 18
+                    # elif code[ptr:ptr+24] == '[>>+>+<<<-]>>>[<<<+>>>-]':
+                    #     #copy value two memory cells to the right TODO: make value copy universal
+                    #     memory[data_ptr + 2] = memory[data_ptr] + memory[data_ptr+2]
+                    #     memory[data_ptr] = memory[data_ptr] + memory[data_ptr+3]
+                    #     memory[data_ptr + 3] = 0
+                    #     data_ptr += 3
+                    #     ptr += 23
+                    elif code[ptr:ptr+6] == '[>+<-]':
+                        memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    elif code[ptr:ptr+6] == '[<+>-]':
+                        memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    else:
+                        success = False
+                        mem_minus = []
+                        mem_plus = []
+                        shift = 0
+                        new_ptr = ptr
+                        base_changes = 0
+                        while True:
+                            new_ptr += 1
+                            if code[new_ptr] == ">":
+                                shift += 1
+                            elif code[new_ptr] == "<":
+                                shift -= 1
+                            elif code[new_ptr] == "+":
+                                mem_plus.append(data_ptr+shift)
+                            elif code[new_ptr] == "-":
+                                if shift == 0:
+                                    base_changes += 1
+                                mem_minus.append(data_ptr+shift)
+                            elif code[new_ptr] == "]" and (mem_plus or mem_minus):
+                                success = True
+                                break
+                            else:
+                                break
+                        if success:
+                            value = memory[data_ptr]//base_changes
+                            for cptr in mem_minus:
+                                while cptr >= len(memory):
+                                    memory.append(0)
+                                memory[cptr] = (memory[cptr] - value) % 256
+                            for cptr in mem_plus:
+                                while cptr >= len(memory):
+                                    memory.append(0)
+                                memory[cptr] = (memory[cptr] + value) % 256
+                            memory[data_ptr] = 0
+                            calc_brackets[ptr] = (mem_plus, mem_minus, base_changes, data_ptr, new_ptr)
+                            ptr = new_ptr
+
             ptr += 1
         elif code[ptr] == ']':
             if memory[data_ptr] != 0:
