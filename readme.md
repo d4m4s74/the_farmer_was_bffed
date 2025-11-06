@@ -71,3 +71,7 @@ Data pointer will be set to temp cell
 ## Non-brainfuck commands
 
 I've added `?`. It does nothing, but it allows you to set a breakpoint at `pass #put breakpoint here` to pause the code in order to check memory, pointers, etc or step through the code.
+
+## Youtube videos of crops
+
+You can find a [playlist of my crop implementations](https://www.youtube.com/playlist?list=PLs6mbYNYl2zc2gGRqNWfslEv7PBbazZGK) on Youtube
