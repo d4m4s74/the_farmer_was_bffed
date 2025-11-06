@@ -89,6 +89,12 @@ def the_farmer_was_brainfucked(code):
     calc_brackets = dict()
     mem_moves = dict()
     mem_changes = dict()
+    patterns = dict()
+    patterns[0] = set()
+    patterns[1] = set()
+    patterns[2] = set()
+    patterns[3] = set()
+    patterns[4] = set()
     while ptr < code_length:
         if code[ptr] == '?':
             pass #put breakpoint here
@@ -97,7 +103,8 @@ def the_farmer_was_brainfucked(code):
             if ptr in mem_moves:
                 data_ptr, ptr = mem_moves[ptr]
             # hardcoded comparison because otherwise it takes a full minute
-            elif code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
+            elif ptr in patterns[0] or (code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]"):
+                patterns[0].add(ptr)
                 pos0 = 0
                 pos1 = memory[data_ptr] - memory[data_ptr+1]
                 if memory[data_ptr] > memory[data_ptr+1]:
@@ -183,29 +190,45 @@ def the_farmer_was_brainfucked(code):
                     memory[data_ptr] = 0
                     ptr += 2
                 elif ptr not in bracket_partners:
-                    if code[ptr:ptr+6] == '[-<->]':
+                    if ptr in patterns[1]:
                         memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
-                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+                    elif ptr in patterns[2]:
                         #copy value to next memory cell
                         memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
                         memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
                         memory[data_ptr + 2] = 0
                         data_ptr += 2
                         ptr += 18
-                    # elif code[ptr:ptr+24] == '[>>+>+<<<-]>>>[<<<+>>>-]':
-                    #     #copy value two memory cells to the right TODO: make value copy universal
-                    #     memory[data_ptr + 2] = memory[data_ptr] + memory[data_ptr+2]
-                    #     memory[data_ptr] = memory[data_ptr] + memory[data_ptr+3]
-                    #     memory[data_ptr + 3] = 0
-                    #     data_ptr += 3
-                    #     ptr += 23
+                    elif ptr in patterns[3]:
+                        memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    elif ptr in patterns[4]:
+                        memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    elif code[ptr:ptr+6] == '[-<->]':
+                        patterns[1].add(ptr)
+                        memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
+                        memory[data_ptr] = 0
+                        ptr += 5
+                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+                        patterns[2].add(ptr)
+                        #copy value to next memory cell
+                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
+                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
+                        memory[data_ptr + 2] = 0
+                        data_ptr += 2
+                        ptr += 18
                     elif code[ptr:ptr+6] == '[>+<-]':
+                        patterns[3].add(ptr)
                         memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
                     elif code[ptr:ptr+6] == '[<+>-]':
+                        patterns[4].add(ptr)
                         memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
