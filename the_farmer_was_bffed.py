@@ -91,12 +91,14 @@ def the_farmer_was_brainfucked(code):
     mem_moves = dict()
     mem_changes = dict()
     patterns = dict()
+    tested = set()
     patterns[0] = set()
     patterns[1] = set()
     patterns[2] = set()
     patterns[3] = set()
     patterns[4] = set()
     patterns[5] = set()
+    patterns[6] = set()
     while ptr < code_length:
         if code[ptr] == '?':
             pass #put breakpoint here
@@ -213,7 +215,7 @@ def the_farmer_was_brainfucked(code):
                 elif code[ptr+1] == '-' and code[ptr+2] == ']':
                     memory[data_ptr] = 0
                     ptr += 2
-                elif ptr not in bracket_partners:
+                elif ptr not in bracket_partners or ptr not in tested:
                     if ptr in patterns[1]:
                         memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
                         memory[data_ptr] = 0
@@ -233,19 +235,18 @@ def the_farmer_was_brainfucked(code):
                         memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
+                    elif ptr in patterns[6]:
+                        for _ in range(memory[data_ptr]):
+                            (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
+                            (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
+                        memory[data_ptr+1] += memory[data_ptr]
+                        memory[data_ptr] = 0
+                        ptr += 57
                     elif code[ptr:ptr+6] == '[-<->]':
                         patterns[1].add(ptr)
                         memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
-                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
-                        patterns[2].add(ptr)
-                        #copy value to next memory cell
-                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
-                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
-                        memory[data_ptr + 2] = 0
-                        data_ptr += 2
-                        ptr += 18
                     elif code[ptr:ptr+6] == '[>+<-]':
                         patterns[3].add(ptr)
                         memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
@@ -256,6 +257,23 @@ def the_farmer_was_brainfucked(code):
                         memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
+                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+                        patterns[2].add(ptr)
+                        #copy value to next memory cell
+                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
+                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
+                        memory[data_ptr + 2] = 0
+                        data_ptr += 2
+                        ptr += 18
+                    elif code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
+                        patterns[6].add(ptr)
+                        for _ in range(memory[data_ptr]):
+                            (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
+                            (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
+                        memory[data_ptr+1] += memory[data_ptr]
+                        memory[data_ptr] = 0
+                        ptr += 57
+
                     elif ptr not in calc_rejects:
                         success = False
                         mem_minus = []
@@ -295,6 +313,7 @@ def the_farmer_was_brainfucked(code):
                             ptr = new_ptr
                         else:
                             calc_rejects.add(ptr)
+                    tested.add(ptr)
             ptr += 1
         elif code[ptr] == ']':
             if memory[data_ptr] != 0:
@@ -535,7 +554,7 @@ if __name__ == "__main__":
     # dinosaur code
     bones = ">>>>>>>>+++++++++++[>++++++>++++++<<-]>++++>+++<<[-]+++++++<++++++<+++++<++++<<<<<+[>>>>>>>>>.<........<........<<<<<<+[>>>>>.<<<<++++[>>>>......<.>>>......<<<.<<<-]>>>>>>.<.......<<<<<<,,]>>>>>>>>>.<<<<<<<<<<]"
     # maze code
-    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]<<<<[-]<[-]>>>>>>>>>>>[-]<[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
+    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>[-]>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]>>>>>>[-]<?[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
     the_farmer_was_brainfucked(treasure)
 
     
