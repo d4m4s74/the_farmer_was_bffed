@@ -18,7 +18,7 @@
 >,,,                            # read available directions into value0         Memory location 2
 # bit splitter: This version changes the direction bit to movement opcodes
 
-#binary counter borrowed from gnvr on esotultles discord
+#binary counter borrowed from gnvr on esoturtles discord
 >++<[->>>>>[-<]+ <--[++<--]++<]                                                  Memory location 2
 set directions to correct locations
 >>[>>>>>>>+++++++<<<<<<<-]        # West                                          Memory location 4
