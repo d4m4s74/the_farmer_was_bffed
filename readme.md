@@ -59,6 +59,8 @@ Data pointer will be set to temp cell
 
 `[>>+>+<<<-]>>>[<<<+>>>-]` : Copy bytes 2 cells over (see above)
 
+`>++<[->>>>>[-<]+<--[++<--]++<]` : 4 bit splitter. set next cell to 2 and the four bits after that.
+
 `>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]` : Z = X > Y  
  First cell is X, second cell is Y, third cell is Z, next two cells are used as temp data and will be emptied.  
  X will end up empty. Y is Y - X. Z is 1 if X > Y or 0 if X <= Y. Can also be used for if X > Y elif X == Y because the Y cell will be 0 if X and Y are equal.  
