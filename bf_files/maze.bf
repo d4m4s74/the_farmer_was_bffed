@@ -21,14 +21,15 @@
 #binary counter borrowed from gnvr on esoturtles discord
 >++<[->>>>>[-<]+ <--[++<--]++<]                                                  Memory location 2
 set directions to correct locations
->>[>>>>>>>+++++++<<<<<<<-]        # West                                          Memory location 4
+>[-]                             # clear 2 from cell 3                           Memory location 3
+>[>>>>>>>+++++++<<<<<<<-]        # West                                          Memory location 4
 >[>>>>>++++++<<<<<-]                # South                                         Memory location 5
 >[>>>+++++<<<-]                   # East                                          Memory location 6
 >[>++++<-]                        # North                                         Memory location 7
-<<<<[-]<[-]
+
 
 # example result: 1 0 0 0 0 0 0 0 4 5 6 7
->>>>>>>>>>                          # move to shift cell                                            Memory location 12
+>>>>>                               # move to shift cell                                            Memory location 12
 >[-]<                               # clear shift temp                                              Memory location 12
 [                                   # start shift loop                                              Memory location 12
 <<<<[<+>-]                          # shift dir0 into temp2                                         Memory location 8
