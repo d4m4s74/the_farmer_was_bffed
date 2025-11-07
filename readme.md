@@ -70,6 +70,8 @@ Data pointer will be set to temp cell
  Not hardcoded yet, but useful to have. Z = X >= Y  
  X and Y will be empty, Z is the result, the two next cells are empty.
 
+ `[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]` Shift 4 variables n times. a,b,c,d,n  `for _ in n: a,b,c,d = b,c,d,a`
+
 ## Non-brainfuck commands
 
 I've added `?`. It does nothing, but it allows you to set a breakpoint at `pass #put breakpoint here` to pause the code in order to check memory, pointers, etc or step through the code.
