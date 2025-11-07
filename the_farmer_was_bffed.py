@@ -87,6 +87,7 @@ def the_farmer_was_brainfucked(code):
     next_pumpkin_number = 0
     bracket_partners = dict()
     calc_brackets = dict()
+    calc_rejects = set()
     mem_moves = dict()
     mem_changes = dict()
     patterns = dict()
@@ -101,7 +102,8 @@ def the_farmer_was_brainfucked(code):
             ptr += 1
         elif code[ptr] == '>':
             if ptr in mem_moves:
-                data_ptr, ptr = mem_moves[ptr]
+                data_change, ptr = mem_moves[ptr]
+                data_ptr += data_change
             # hardcoded comparison because otherwise it takes a full minute
             elif ptr in patterns[0] or (code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]"):
                 patterns[0].add(ptr)
@@ -121,21 +123,24 @@ def the_farmer_was_brainfucked(code):
                 ptr = ptr + 63
             else:
                 start = ptr
+                data_start = data_ptr
                 while code[ptr] == '>':
                     data_ptr += 1
                     if data_ptr == len(memory):
                         memory.append(0)
                     ptr += 1
-                mem_moves[start] = (data_ptr, ptr)
+                mem_moves[start] = (data_ptr - data_start, ptr)
         elif code[ptr] == '<':
             if ptr in mem_moves:
-                data_ptr, ptr = mem_moves[ptr]
+                data_change, ptr = mem_moves[ptr]
+                data_ptr += data_change
             else:
                 start = ptr
+                data_start = data_ptr
                 while code[ptr] == '<':
                     data_ptr -= 1
                     ptr += 1
-                mem_moves[start] = (data_ptr, ptr)
+                mem_moves[start] = (data_ptr - data_start, ptr)
         elif code[ptr] == '+':
             if ptr in mem_changes:
                 change, ptr = mem_changes[ptr]
@@ -178,7 +183,9 @@ def the_farmer_was_brainfucked(code):
                     bracket_partners[start] = ptr
                     bracket_partners[ptr] = start
             else:
-                if ptr in calc_brackets:
+                if ptr in calc_brackets and calc_brackets[ptr][3] != data_ptr:
+                    calc_rejects.add(ptr)
+                if ptr in calc_brackets and ptr not in calc_rejects:
                     mem_plus, mem_minus, base_changes, base_ptr, new_ptr = calc_brackets[ptr]
                     value = memory[base_ptr] // base_changes
                     for cptr in mem_minus:
@@ -232,7 +239,7 @@ def the_farmer_was_brainfucked(code):
                         memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
                         memory[data_ptr] = 0
                         ptr += 5
-                    else:
+                    elif ptr not in calc_rejects:
                         success = False
                         mem_minus = []
                         mem_plus = []
@@ -251,7 +258,7 @@ def the_farmer_was_brainfucked(code):
                                 if shift == 0:
                                     base_changes += 1
                                 mem_minus.append(data_ptr+shift)
-                            elif code[new_ptr] == "]" and (mem_plus or mem_minus):
+                            elif code[new_ptr] == "]" and shift == 0 and (mem_plus or mem_minus):
                                 success = True
                                 break
                             else:
@@ -269,7 +276,8 @@ def the_farmer_was_brainfucked(code):
                             memory[data_ptr] = 0
                             calc_brackets[ptr] = (mem_plus, mem_minus, base_changes, data_ptr, new_ptr)
                             ptr = new_ptr
-
+                        else:
+                            calc_rejects.add(ptr)
             ptr += 1
         elif code[ptr] == ']':
             if memory[data_ptr] != 0:
@@ -510,7 +518,7 @@ if __name__ == "__main__":
     # dinosaur code
     bones = ">>>>>>>>+++++++++++[>++++++>++++++<<-]>++++>+++<<[-]+++++++<++++++<+++++<++++<<<<<+[>>>>>>>>>.<........<........<<<<<<+[>>>>>.<<<<++++[>>>>......<.>>>......<<<.<<<-]>>>>>>.<.......<<<<<<,,]>>>>>>>>>.<<<<<<<<<<]"
     # maze code
-    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,[>+>+<<-]>>[<<+>>-]++++++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>+++++++<<<<<<<<<-------->>>-]<<[-]<[>+>+<<-]>>[<<+>>-]++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>++++++<<<<<<<<---->>>-]<<[-]<[>+>+<<-]>>[<<+>>-]++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>+++++<<<<<<<-->>>-]<<[-]<[>>>>>>++++<<<<<<-]>>>>>>>>>>>[-]<[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
+    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,?>++<[->>>>>[-<]+<--[++<--]++<]?>>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]<<<<[-]<[-]?>>>>>>>>>>>[-]<[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
     the_farmer_was_brainfucked(treasure)
 
     
