@@ -34,7 +34,7 @@ plants_with_values = {Entities.Cactus,Entities.Sunflower}
 global pumpkin_numbers
 pumpkin_numbers = dict()
 global pumpkins
-pumpkins = []
+known_pumpkins = []
 global next_pumpkin_number
 next_pumpkin_number = 0
 global bracket_partners
@@ -458,27 +458,25 @@ def c():
     global plant_info
     global info_ptr
     global moves
+    global next_pumpkin_number
     if get_entity_type() == Entities.Dead_Pumpkin:
         plant_info = []
         info_ptr = 0
-    if len(plant_info) == 0:
+    if len(plant_info) > 1:
+        memory[data_ptr] = plant_info[info_ptr]
+        info_ptr = info_ptr + 1
+        if len(plant_info) > 1 and info_ptr >= len(plant_info):
+            plant_info = []
+            info_ptr = 0
+        ptr += 1
+        return
+    elif not plant_info:
         plant_type = get_entity_type()
         if plant_type == Entities.Hedge or plant_type == Entities.Treasure: #in mazes return chest coordinates and available moves
-            x = get_pos_x()
-            y = get_pos_y()
-            available_moves = 0
-            if can_move(North):
-                available_moves += 1
-            if can_move(East):
-                available_moves += 2
-            if can_move(South):
-                available_moves += 4
-            if can_move(West):
-                available_moves += 8
             plant_info.append(left_shift(plants_read[plant_type],2))
-            plant_info.append(x)
-            plant_info.append(y)
-            plant_info.append(available_moves)
+            plant_info.append(get_pos_x())
+            plant_info.append(get_pos_y())
+            plant_info.append(can_move(North)*1+can_move(East)*2+can_move(South)*4+can_move(West)*8)
         elif plant_type == None: #when on an empty tile return move directions for use in dinosaur code
             water_level = get_water() * 4 // 1
             if water_level == 4:
@@ -489,16 +487,7 @@ def c():
             plant_type_shifted = 0
             first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
             plant_info.append(first_byte)
-            available_moves = 0
-            if can_move(North):
-                available_moves += 1
-            if can_move(East):
-                available_moves += 2
-            if can_move(South):
-                available_moves += 4
-            if can_move(West):
-                available_moves += 8
-            plant_info.append(available_moves)
+            plant_info.append(can_move(North)*1+can_move(East)*2+can_move(South)*4+can_move(West)*8)
         elif plant_type == Entities.Apple: #When on apple first return possible moves to emulate empty tile, then return next location
             water_level = get_water() * 4 // 1
             if water_level == 4:
@@ -510,16 +499,7 @@ def c():
             first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
             plant_info.append(first_byte)
             x, y = measure()
-            available_moves = 0
-            if can_move(North):
-                available_moves += 1
-            if can_move(East):
-                available_moves += 2
-            if can_move(South):
-                available_moves += 4
-            if can_move(West):
-                available_moves += 8
-            plant_info.append(available_moves)
+            plant_info.append(can_move(North)*1+can_move(East)*2+can_move(South)*4+can_move(West)*8)
             plant_info.append(x)
             plant_info.append(y)
         else:
@@ -536,7 +516,12 @@ def c():
             plant_type_shifted = left_shift(plants_read[plant_type],2)
             first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
             plant_info.append(first_byte)
-    elif len(plant_info) == 1:
+        memory[data_ptr] = plant_info[0]
+        info_ptr = info_ptr + 1
+        ptr += 1
+        return
+
+    else:
         plant_type = get_entity_type()
         if plant_type in plants_with_companions:
             companion, (x, y) = get_companion()
@@ -557,69 +542,69 @@ def c():
         elif plant_type == Entities.Pumpkin:
             center = measure()
             if center not in pumpkin_numbers:
-                if len(pumpkins) == 255:
-                    old_pumpkin = pumpkins[next_pumpkin_number]
+                if len(known_pumpkins) == 256:
+                    old_pumpkin = known_pumpkins[next_pumpkin_number]
                     pumpkin_numbers.pop(old_pumpkin)
-                    pumpkins[next_pumpkin_number] = center
+                    known_pumpkins[next_pumpkin_number] = center
                     pumpkin_numbers[center] = next_pumpkin_number
                 else:
                     pumpkin_numbers[center] = next_pumpkin_number
-                    pumpkins.append(center)
-                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+                    known_pumpkins.append(center)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 256
             plant_info.append(pumpkin_numbers[center])  
             north = measure(North)
             if north not in pumpkin_numbers:
-                if len(pumpkins) == 255:
-                    old_pumpkin = pumpkins[next_pumpkin_number]
+                if len(known_pumpkins) == 256:
+                    old_pumpkin = known_pumpkins[next_pumpkin_number]
                     pumpkin_numbers.pop(old_pumpkin)
-                    pumpkins[next_pumpkin_number] = north
+                    known_pumpkins[next_pumpkin_number] = north
                     pumpkin_numbers[north] = next_pumpkin_number
                 else:
                     pumpkin_numbers[north] = next_pumpkin_number
-                    pumpkins.append(north)
-                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+                    known_pumpkins.append(north)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 256
             plant_info.append(pumpkin_numbers[north])  
             east = measure(East)
             if east not in pumpkin_numbers:
-                if len(pumpkins) == 255:
-                    old_pumpkin = pumpkins[next_pumpkin_number]
+                if len(known_pumpkins) == 256:
+                    old_pumpkin = known_pumpkins[next_pumpkin_number]
                     pumpkin_numbers.pop(old_pumpkin)
-                    pumpkins[next_pumpkin_number] = east
+                    known_pumpkins[next_pumpkin_number] = east
                     pumpkin_numbers[east] = next_pumpkin_number
                 else:
                     pumpkin_numbers[east] = next_pumpkin_number
-                    pumpkins.append(east)
-                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+                    known_pumpkins.append(east)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 256
             plant_info.append(pumpkin_numbers[east])  
             south = measure(South)
             if south not in pumpkin_numbers:
-                if len(pumpkins) == 255:
-                    old_pumpkin = pumpkins[next_pumpkin_number]
+                if len(known_pumpkins) == 256:
+                    old_pumpkin = known_pumpkins[next_pumpkin_number]
                     pumpkin_numbers.pop(old_pumpkin)
-                    pumpkins[next_pumpkin_number] = south
+                    known_pumpkins[next_pumpkin_number] = south
                     pumpkin_numbers[south] = next_pumpkin_number
                 else:
                     pumpkin_numbers[south] = next_pumpkin_number
-                    pumpkins.append(south)
-                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+                    known_pumpkins.append(south)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 256
             plant_info.append(pumpkin_numbers[south])  
             west = measure(West)
             if west not in pumpkin_numbers: 
-                if len(pumpkins) == 255:
-                    old_pumpkin = pumpkins[next_pumpkin_number]
+                if len(known_pumpkins) == 256:
+                    old_pumpkin = known_pumpkins[next_pumpkin_number]
                     pumpkin_numbers.pop(old_pumpkin)
-                    pumpkins[next_pumpkin_number] = west
+                    known_pumpkins[next_pumpkin_number] = west
                     pumpkin_numbers[west] = next_pumpkin_number
                 else:
                     pumpkin_numbers[west] = next_pumpkin_number
-                    pumpkins.append(west)
-                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+                    known_pumpkins.append(west)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 256
             plant_info.append(pumpkin_numbers[west])
-    memory[data_ptr] = plant_info[info_ptr]
-    info_ptr = info_ptr + 1
-    if len(plant_info) > 1 and info_ptr >= len(plant_info):
-        plant_info = []
-        info_ptr = 0
+        memory[data_ptr] = plant_info[info_ptr]
+        info_ptr = info_ptr + 1
+        if len(plant_info) > 1 and info_ptr >= len(plant_info):
+            plant_info = []
+            info_ptr = 0
     ptr += 1
 symbols[','] = c
 
@@ -639,8 +624,8 @@ def the_farmer_was_brainfucked(input):
             functions[ptr]()
         elif code[ptr] in symbols:
             symbols[code[ptr]]()
-        # if num_items(Items.Gold) == 616448:
-        #     return
+        if num_items(Items.Gold) == 616448:
+            return
 
 if __name__ == "__main__":
     set_world_size(8)
@@ -658,4 +643,4 @@ if __name__ == "__main__":
     bones = ">>>>>>>>+++++++++++[>++++++>++++++<<-]>++++>+++<<[-]+++++++<++++++<+++++<++++<<<<<+[>>>>>>>>>.<........<........<<<<<<+[>>>>>.<<<<++++[>>>>......<.>>>......<<<.<<<-]>>>>>>.<.......<<<<<<,,]>>>>>>>>>.<<<<<<<<<<]"
     # maze code
     treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>[-]>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]>>>>>>[-]<[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
-    the_farmer_was_brainfucked(treasure)
+    the_farmer_was_brainfucked(pumpkins)
