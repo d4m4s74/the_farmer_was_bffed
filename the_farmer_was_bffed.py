@@ -45,6 +45,8 @@ global symbols
 symbols = dict()
 global calc_rejects
 calc_rejects = set()
+global substance
+substance = 0
 
 def qm():
     global ptr
@@ -62,7 +64,7 @@ def gt():
     global memory
     global data_ptr
     global functions
-    if len(code) >= ptr + 63 and code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
+    if code_length >= ptr + 63 and code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
         def greater():
             global memory
             global ptr
@@ -84,13 +86,13 @@ def gt():
         functions[ptr] = greater
         greater()
         return
-    elif (code_length >= ptr + 30 and code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]") and memory[data_ptr] < 16 and memory[data_ptr+1] == 0:
+    elif code_length >= ptr + 30 and code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]" and memory[data_ptr] < 16 and not memory[data_ptr+1]:
         def splitter():
             global memory
             global data_ptr
             global ptr
             global symbols
-            if memory[data_ptr] > 15 or memory[data_ptr+1] != 0:
+            if memory[data_ptr] > 15 or memory[data_ptr+1]:
                 symbols['>']()
                 return
             if memory[data_ptr] %2 == 1:
@@ -205,7 +207,7 @@ def lb():
     global functions
     global bracket_partners
     global calc_rejects
-    if memory[data_ptr] == 0:
+    if not memory[data_ptr]:
         if ptr in bracket_partners:
             ptr = bracket_partners[ptr]+1
         else:
@@ -241,7 +243,7 @@ def lb():
             functions[ptr] = subtract_left
             subtract_left()
             return
-        elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[>+<-]':
+        elif code_length >= ptr + 6 and code[ptr:ptr+6] == '[>+<-]':
             def add_right():
                 global memory
                 global data_ptr
@@ -252,7 +254,7 @@ def lb():
             functions[ptr] = add_right
             add_right()
             return
-        elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[<+>-]':
+        elif code_length >= ptr + 6 and code[ptr:ptr+6] == '[<+>-]':
             def add_left():
                 global memory
                 global data_ptr
@@ -263,7 +265,7 @@ def lb():
             functions[ptr] = add_left
             add_left()
             return
-        elif len(code) >= ptr + 19 and code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+        elif code_length >= ptr + 19 and code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
             def copy_right():
                 global memory
                 global data_ptr
@@ -276,14 +278,13 @@ def lb():
             functions[ptr] = copy_right
             copy_right()
             return
-        elif len(code) >= ptr + 58 and code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
+        elif code_length >= ptr + 58 and code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
             def shift_4():
                 global memory
                 global data_ptr
                 global ptr
                 for _ in range(memory[data_ptr]):
-                    (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
-                    (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
+                    memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1] = memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1], memory[data_ptr-4]
                 memory[data_ptr+1] += memory[data_ptr]
                 memory[data_ptr] = 0
                 ptr += 58
@@ -307,10 +308,10 @@ def lb():
                 elif code[new_ptr] == "+":
                     mem_plus.append(data_ptr+shift)
                 elif code[new_ptr] == "-":
-                    if shift == 0:
+                    if not shift:
                         base_changes += 1
                     mem_minus.append(data_ptr+shift)
-                elif code[new_ptr] == "]" and shift == 0 and (mem_plus or mem_minus):
+                elif code[new_ptr] == "]" and not shift and (mem_plus or mem_minus):
                     success = True
                     break
                 else:
@@ -340,7 +341,7 @@ def lb():
                         return
                     value = memory[data_ptr]//base_changes
                     for cptr in actions:
-                        while(cptr >= len(memory)):
+                        while cptr >= len(memory):
                             memory.append(0)
                         memory[cptr] = (memory[cptr] + value * actions[cptr])%256
                     ptr = new_ptr+1
@@ -354,7 +355,7 @@ def lb():
             global code
             global memory
             global data_ptr
-            if memory[data_ptr] == 0:
+            if not memory[data_ptr]:
                 if ptr in bracket_partners:
                     ptr = bracket_partners[ptr]+1
                 else:
@@ -384,7 +385,7 @@ def rb():
         global data_ptr
         global code
         global bracket_partners
-        if memory[data_ptr] != 0:
+        if memory[data_ptr]:
             if ptr in bracket_partners:
                 ptr = bracket_partners[ptr]
             else:
@@ -438,7 +439,6 @@ def d():
         plant_info = []
         info_ptr = 0
     elif memory[data_ptr] == 68:
-        substance = get_world_size() * 2**(num_unlocked(Unlocks.Mazes) - 1)
         use_item(Items.Weird_Substance, substance)
     elif memory[data_ptr] == 69:
         change_hat(Hats.Straw_Hat)
@@ -629,6 +629,8 @@ def the_farmer_was_brainfucked(input):
     global ptr
     global symbols
     global functions
+    global substance
+    substance = get_world_size() * 2**(num_unlocked(Unlocks.Mazes) - 1)
     code = input
     code_length = len(code)
     ptr = 0
@@ -637,6 +639,8 @@ def the_farmer_was_brainfucked(input):
             functions[ptr]()
         elif code[ptr] in symbols:
             symbols[code[ptr]]()
+        # if num_items(Items.Gold) == 616448:
+        #     return
 
 if __name__ == "__main__":
     set_world_size(8)
@@ -653,5 +657,5 @@ if __name__ == "__main__":
     # dinosaur code
     bones = ">>>>>>>>+++++++++++[>++++++>++++++<<-]>++++>+++<<[-]+++++++<++++++<+++++<++++<<<<<+[>>>>>>>>>.<........<........<<<<<<+[>>>>>.<<<<++++[>>>>......<.>>>......<<<.<<<-]>>>>>>.<.......<<<<<<,,]>>>>>>>>>.<<<<<<<<<<]"
     # maze code
-    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>[-]>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]>>>>>>[-]<?[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
+    treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>[-]>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]>>>>>>[-]<[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
     the_farmer_was_brainfucked(treasure)
