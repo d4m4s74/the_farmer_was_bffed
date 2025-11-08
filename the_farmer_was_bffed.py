@@ -1,198 +1,362 @@
-# Write:
-# till:
-# 00000000
-# harvest:
-# 00000001
-# move:
-# 000001xx
-# plant:
-# 10000xxx
-# use_item:
-# 010000xx
-# generate maze
-# 01000100 use enough weird substance to generate maze
-# change_hat:
-# 01000101 straw_hat
-# 01000110 dinosaur_hat
-# swap:
-# 001000xx
-#
-#
-# Read:
-# first:
-# wwppppth (water level (0-.25, .25-.5, .5-.75, .75-1), plant type, tilled state, harvestable)
-# second if companion:
-# 00000xxx (plant)
-# third if companion:
-# 000xxxxx (X)
-# fourth if companion:
-# 000xxxxx (Y)
-# second if measure cactus or sunflower:
-# 0000xxxx (value center)
-# third if measure cactus or sunflower
-# 0000xxxx (value north)
-# fourth if measure cactus or sunflower
-# 0000xxxx (value east)
-# fifth if measure cactus or sunflower
-# 0000xxxx (value south)
-# sixth if measure cactus or sunflower
-# 0000xxxx (value west)
-# second if measure pumpkin
-# xxxxxxxx (counting 0 to 255 for every unique pumpkin, center)
-# third if measure pumpkin
-# xxxxxxxx (counting 0 to 255 for every unique pumpkin, north)
-# fourth if measure pumpkin
-# xxxxxxxx (counting 0 to 255 for every unique pumpkin, east)
-# fifth if measure pumpkin
-# xxxxxxxx (counting 0 to 255 for every unique pumpkin, south)
-# sixth if measure pumpkin
-# xxxxxxxx (counting 0 to 255 for every unique pumpkin, west)
-# second if measure hedge (maze)
-# 00xxxxxx (X)
-# third if measure hedge (maze)
-# 00xxxxxx (Y)
-# fourth if measure hedge (maze)
-# 0000xxxx (available moves bitmask) (North=1, East=2, South=4, West=8)
-# second if measure empty tile or apple (dinosaur)
-# 0000xxxx (available moves bitmask) (North=1, East=2, South=4, West=8)
-# third if apple:
-# 00xxxxxx (X)
-# fourth if apple:
-# 00xxxxxx (Y)
-
 def left_shift(x, n):
     return x * (2 ** n)
 def right_shift(x, n):
     return x // (2 ** n)
 
+global code6
+code = ""
+global code_length
+code_length = 0
+global ptr
+ptr = 0
+global data_ptr
+data_ptr = 0
+global memory
+memory = [0]
+global moves
+moves = {4:North,5:East,6:South,7:West}
+global swap_moves
+swap_moves = {32:North,33:East,34:South,35:West}
+global plants_write
+plants_write = {128:Entities.Grass,129:Entities.Bush,130:Entities.Tree,131:Entities.Carrot,132:Entities.Pumpkin,133:Entities.Cactus,134:Entities.Sunflower}
+global plants_read
+plants_read = {None:0,Entities.Grass:1,Entities.Bush:2,Entities.Tree:3,Entities.Carrot:4,Entities.Pumpkin:5,Entities.Cactus:6,Entities.Sunflower:7,Entities.Dead_Pumpkin:8,Entities.Apple:9,Entities.Treasure:10,Entities.Hedge:11}
+global items
+items = {64:Items.Water,65:Items.Fertilizer,66:Items.Weird_Substance}
+global plant_info
+plant_info = []
+global info_ptr
+info_ptr = 0
+global plants_with_companions
+plants_with_companions = {Entities.Grass,Entities.Bush,Entities.Tree,Entities.Carrot}
+global plants_with_values
+plants_with_values = {Entities.Cactus,Entities.Sunflower}
+global pumpkin_numbers
+pumpkin_numbers = dict()
+global pumpkins
+pumpkins = []
+global next_pumpkin_number
+next_pumpkin_number = 0
+global bracket_partners
+bracket_partners = dict()
+global functions
+functions = dict()
+global symbols
+symbols = dict()
+global calc_rejects
+calc_rejects = set()
 
+def qm():
+    global ptr
+    global memory
+    global data_ptr
+    ptr += 1
+    #set breakpoint here
 
+symbols['?'] = qm
 
-def the_farmer_was_brainfucked(code):
-    ptr = 0
-    data_ptr = 0
-    memory = [0]
-    code_length = len(code)
-    moves = {4:North,5:East,6:South,7:West}
-    swap_moves = {32:North,33:East,34:South,35:West}
-    plants_write = {128:Entities.Grass,129:Entities.Bush,130:Entities.Tree,131:Entities.Carrot,132:Entities.Pumpkin,133:Entities.Cactus,134:Entities.Sunflower}
-    plants_read = {None:0,Entities.Grass:1,Entities.Bush:2,Entities.Tree:3,Entities.Carrot:4,Entities.Pumpkin:5,Entities.Cactus:6,Entities.Sunflower:7,Entities.Dead_Pumpkin:8,Entities.Apple:9,Entities.Treasure:10,Entities.Hedge:11}
-    items = {64:Items.Water,65:Items.Fertilizer,66:Items.Weird_Substance}
-    plant_info = []
-    info_ptr = 0
-    plants_with_companions = {Entities.Grass,Entities.Bush,Entities.Tree,Entities.Carrot}
-    plants_with_values = {Entities.Cactus,Entities.Sunflower}
-    pumpkin_numbers = dict()
-    pumpkins = []
-    next_pumpkin_number = 0
-    bracket_partners = dict()
-    calc_brackets = dict()
-    calc_rejects = set()
-    mem_moves = dict()
-    mem_changes = dict()
-    patterns = dict()
-    skip_detection = set()
-    patterns[0] = set()
-    patterns[1] = set()
-    patterns[2] = set()
-    patterns[3] = set()
-    patterns[4] = set()
-    patterns[5] = set()
-    patterns[6] = set()
-    while ptr < code_length:
-        # stop point for leaderboard so why not?
-        #if num_items(Items.Gold) >= 616448:
-        #    return
-        if code[ptr] == '?':
-            pass #put breakpoint here
+def gt():
+    global code
+    global code_length
+    global ptr
+    global memory
+    global data_ptr
+    global functions
+    if len(code) >= ptr + 63 and code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]":
+        def greater():
+            global memory
+            global ptr
+            global data_ptr
+            pos0 = 0
+            pos1 = memory[data_ptr] - memory[data_ptr+1]
+            if memory[data_ptr] > memory[data_ptr+1]:
+                pos3 = 1
+            else:
+                pos3 = 0
+            pos4 = 0
+            pos5 = 0
+            memory[data_ptr] = pos0
+            memory[data_ptr+1] = pos1%256
+            memory[data_ptr+2] = pos3
+            memory[data_ptr+3] = pos4
+            memory[data_ptr+4] = pos5
+            ptr = ptr + 63
+        functions[ptr] = greater
+        greater()
+        return
+    elif (code_length >= ptr + 30 and code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]") and memory[data_ptr] < 16 and memory[data_ptr+1] == 0:
+        def splitter():
+            global memory
+            global data_ptr
+            global ptr
+            global symbols
+            if memory[data_ptr] > 15 or memory[data_ptr+1] != 0:
+                symbols['>']()
+                return
+            if memory[data_ptr] %2 == 1:
+                memory[data_ptr+5] = (memory[data_ptr+5] + 1) % 256
+                memory[data_ptr] -= 1
+            if memory[data_ptr] %4 == 2:
+                memory[data_ptr+4] = (memory[data_ptr+4] + 1) % 256
+                memory[data_ptr] -= 2
+            if memory[data_ptr] %8 == 4:
+                memory[data_ptr+3] = (memory[data_ptr+3] + 1) % 256
+                memory[data_ptr] -= 4
+            if memory[data_ptr] == 8:
+                memory[data_ptr+2] = (memory[data_ptr+2] + 1) % 256
+            memory[data_ptr] = 0
+            ptr = ptr + 30
+        functions[ptr] = splitter
+        splitter()
+        return
+    else:
+        start = ptr
+        data_start = data_ptr
+        while code[ptr] == '>':
+            data_ptr += 1
+            if data_ptr == len(memory):
+                memory.append(0)
             ptr += 1
-        elif code[ptr] == '>':
-            if ptr in mem_moves:
-                data_change, ptr = mem_moves[ptr]
-                data_ptr += data_change
-            # hardcoded comparison because otherwise it takes a full minute
-            elif ptr not in patterns[5] and (ptr in patterns[0] or (len(code) >= ptr + 63 and code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]")):
-                patterns[0].add(ptr)
-                pos0 = 0
-                pos1 = memory[data_ptr] - memory[data_ptr+1]
-                if memory[data_ptr] > memory[data_ptr+1]:
-                    pos3 = 1
-                else:
-                    pos3 = 0
-                pos4 = 0
-                pos5 = 0
-                memory[data_ptr] = pos0
-                memory[data_ptr+1] = pos1%256
-                memory[data_ptr+2] = pos3
-                memory[data_ptr+3] = pos4
-                memory[data_ptr+4] = pos5
-                ptr = ptr + 63
-            elif (ptr in patterns[5] or (len(code) >= ptr + 30 and code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]")) and memory[data_ptr] < 16 and memory[data_ptr+1] == 0:
-                patterns[5].add(ptr)
-                if memory[data_ptr] %2 == 1:
-                    memory[data_ptr+5] = (memory[data_ptr+5] + 1) % 256
-                    memory[data_ptr] -= 1
-                if memory[data_ptr] %4 == 2:
-                    memory[data_ptr+4] = (memory[data_ptr+4] + 1) % 256
-                    memory[data_ptr] -= 2
-                if memory[data_ptr] %8 == 4:
-                    memory[data_ptr+3] = (memory[data_ptr+3] + 1) % 256
-                    memory[data_ptr] -= 4
-                if memory[data_ptr] == 8:
-                    memory[data_ptr+2] = (memory[data_ptr+2] + 1) % 256
+        data_change = data_ptr - data_start
+        end_ptr = ptr
+        def gt_default():
+            global ptr
+            global data_ptr
+            global memory
+            data_ptr += data_change
+            ptr = end_ptr
+            while len(memory) < data_ptr:
+                memory.append(0)
+        if start not in functions:
+            functions[start] = gt_default
+symbols['>'] = gt
+
+def lt():
+    global code
+    global ptr
+    global memory
+    global data_ptr
+    global functions
+    start = ptr
+    data_start = data_ptr
+    while code[ptr] == '<':
+        data_ptr -= 1
+        ptr += 1
+    end_ptr = ptr
+    data_change = data_ptr - data_start
+    def lt_default():
+        global ptr
+        global data_ptr
+        data_ptr += data_change
+        ptr = end_ptr
+    functions[start] = lt_default
+symbols['<'] = lt
+
+def p():
+    global code
+    global ptr
+    global memory
+    global data_ptr
+    global functions
+    start = ptr
+    change = 0
+    while code[ptr] == '+':
+        memory[data_ptr] += 1
+        change += 1
+        ptr += 1
+    end_ptr = ptr
+    def p_default():
+        global memory
+        global data_ptr
+        global ptr
+        memory[data_ptr] = (memory[data_ptr] + change) % 256
+        ptr = end_ptr
+    functions[start] = p_default
+symbols['+'] = p
+
+def m():
+    global code
+    global ptr
+    global memory
+    global data_ptr
+    global functions
+    start = ptr
+    change = 0
+    while code[ptr] == '-':
+        memory[data_ptr] -= 1
+        change -= 1
+        ptr += 1
+    end_ptr = ptr
+    def m_default():
+        global memory
+        global data_ptr
+        global ptr
+        memory[data_ptr] = (memory[data_ptr] + change) % 256
+        ptr = end_ptr
+    functions[start] = m_default
+symbols['-'] = m
+
+def lb():
+    global code
+    global code_length
+    global ptr
+    global memory
+    global data_ptr
+    global functions
+    global bracket_partners
+    global calc_rejects
+    if memory[data_ptr] == 0:
+        if ptr in bracket_partners:
+            ptr = bracket_partners[ptr]+1
+        else:
+            start = ptr
+            open_brackets = 1
+            while open_brackets > 0:
+                ptr += 1
+                if code[ptr] == '[':
+                    open_brackets += 1
+                elif code[ptr] == ']':
+                    open_brackets -= 1
+            bracket_partners[start] = ptr
+            bracket_partners[ptr] = start
+    else:
+        if code[ptr+1] == '-' and code[ptr+2] == ']':
+            def set_0():
+                global memory
+                global data_ptr
+                global ptr
                 memory[data_ptr] = 0
-                ptr = ptr + 30
+                ptr += 3
+            functions[ptr] = set_0
+            set_0()
+            return
+        elif code_length >= ptr + 6 and code[ptr:ptr+6] == '[-<->]':
+            def subtract_left():
+                global memory
+                global data_ptr
+                global ptr
+                memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
+                memory[data_ptr] = 0
+                ptr += 6
+            functions[ptr] = subtract_left
+            subtract_left()
+            return
+        elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[>+<-]':
+            def add_right():
+                global memory
+                global data_ptr
+                global ptr
+                memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
+                memory[data_ptr] = 0
+                ptr += 6
+            functions[ptr] = add_right
+            add_right()
+            return
+        elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[<+>-]':
+            def add_left():
+                global memory
+                global data_ptr
+                global ptr
+                memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
+                memory[data_ptr] = 0
+                ptr += 6
+            functions[ptr] = add_left
+            add_left()
+            return
+        elif len(code) >= ptr + 19 and code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+            def copy_right():
+                global memory
+                global data_ptr
+                global ptr
+                memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
+                memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
+                memory[data_ptr + 2] = 0
+                data_ptr += 2
+                ptr += 19
+            functions[ptr] = copy_right
+            copy_right()
+            return
+        elif len(code) >= ptr + 58 and code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
+            def shift_4():
+                global memory
+                global data_ptr
+                global ptr
+                for _ in range(memory[data_ptr]):
+                    (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
+                    (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
+                memory[data_ptr+1] += memory[data_ptr]
+                memory[data_ptr] = 0
+                ptr += 58
+            functions[ptr] = shift_4
+            shift_4()
+            return
+        elif ptr not in calc_rejects:
+            success = False
+            mem_minus = []
+            mem_plus = []
+            shift = 0
+            new_ptr = ptr
+            base_changes = 0
+            data_start = data_ptr
+            while True:
+                new_ptr += 1
+                if code[new_ptr] == ">":
+                    shift += 1
+                elif code[new_ptr] == "<":
+                    shift -= 1
+                elif code[new_ptr] == "+":
+                    mem_plus.append(data_ptr+shift)
+                elif code[new_ptr] == "-":
+                    if shift == 0:
+                        base_changes += 1
+                    mem_minus.append(data_ptr+shift)
+                elif code[new_ptr] == "]" and shift == 0 and (mem_plus or mem_minus):
+                    success = True
+                    break
+                else:
+                    break
+            if success:
+                actions = dict()
+                for cptr in mem_minus:
+                    if cptr not in actions:
+                        actions[cptr] = -1
+                    else:
+                        actions[cptr] -= 1
+                for cptr in mem_plus:
+                    if cptr not in actions:
+                        actions[cptr] = 1
+                    else:
+                        actions[cptr] += 1
+                bracket_partners[ptr] = new_ptr
+                def calc_brackets():
+                    global ptr
+                    global memory
+                    global data_ptr
+                    global symbols
+                    global calc_rejects
+                    if data_ptr != data_start:
+                        calc_rejects.add(ptr)
+                        symbols['[']()
+                        return
+                    value = memory[data_ptr]//base_changes
+                    for cptr in actions:
+                        while(cptr >= len(memory)):
+                            memory.append(0)
+                        memory[cptr] = (memory[cptr] + value * actions[cptr])%256
+                    ptr = new_ptr+1
+                functions[ptr] = calc_brackets
+                calc_brackets()
+                return
             
-            else:
-                start = ptr
-                data_start = data_ptr
-                while code[ptr] == '>':
-                    data_ptr += 1
-                    if data_ptr == len(memory):
-                        memory.append(0)
-                    ptr += 1
-                mem_moves[start] = (data_ptr - data_start, ptr)
-        elif code[ptr] == '<':
-            if ptr in mem_moves:
-                data_change, ptr = mem_moves[ptr]
-                data_ptr += data_change
-            else:
-                start = ptr
-                data_start = data_ptr
-                while code[ptr] == '<':
-                    data_ptr -= 1
-                    ptr += 1
-                mem_moves[start] = (data_ptr - data_start, ptr)
-        elif code[ptr] == '+':
-            if ptr in mem_changes:
-                change, ptr = mem_changes[ptr]
-                memory[data_ptr] = (memory[data_ptr] + change) % 256
-            else:
-                start = ptr
-                change = 0
-                while code[ptr] == '+':
-                    memory[data_ptr] += 1
-                    change += 1
-                    ptr += 1
-                mem_changes[start] = (change, ptr)
-                memory[data_ptr] = memory[data_ptr] % 256
-        elif code[ptr] == '-':
-            if ptr in mem_changes:
-                change, ptr = mem_changes[ptr]
-                memory[data_ptr] = (memory[data_ptr] + change) % 256
-            else:
-                start = ptr
-                change = 0
-                while code[ptr] == '-':
-                    memory[data_ptr] -= 1
-                    change -= 1
-                    ptr += 1
-                mem_changes[start] = (change, ptr)
-                memory[data_ptr] = memory[data_ptr] % 256
-        elif code[ptr] == '[':
+        def lb_default():
+            global ptr
+            global bracket_partners
+            global code
+            global memory
+            global data_ptr
             if memory[data_ptr] == 0:
                 if ptr in bracket_partners:
-                    ptr = bracket_partners[ptr]
+                    ptr = bracket_partners[ptr]+1
                 else:
                     start = ptr
                     open_brackets = 1
@@ -204,330 +368,276 @@ def the_farmer_was_brainfucked(code):
                             open_brackets -= 1
                     bracket_partners[start] = ptr
                     bracket_partners[ptr] = start
+                    ptr += 1
             else:
-                if ptr in calc_brackets and calc_brackets[ptr][3] != data_ptr:
-                    calc_rejects.add(ptr)
-                elif ptr in calc_brackets and ptr not in calc_rejects:
-                    mem_plus, mem_minus, base_changes, base_ptr, new_ptr = calc_brackets[ptr]
-                    value = memory[base_ptr] // base_changes
-                    for cptr in mem_minus:
-                        memory[cptr] = (memory[cptr] - value) % 256
-                    for cptr in mem_plus:
-                        memory[cptr] = (memory[cptr] + value) % 256
-                    ptr = new_ptr
-                elif code[ptr+1] == '-' and code[ptr+2] == ']':
-                    memory[data_ptr] = 0
-                    ptr += 2
-                elif ptr not in bracket_partners or ptr not in skip_detection:
-                    if ptr in patterns[1]:
-                        memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif ptr in patterns[2]:
-                        #copy value to next memory cell
-                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
-                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
-                        memory[data_ptr + 2] = 0
-                        data_ptr += 2
-                        ptr += 18
-                    elif ptr in patterns[3]:
-                        memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif ptr in patterns[4]:
-                        memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif ptr in patterns[6]:
-                        for _ in range(memory[data_ptr]):
-                            (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
-                            (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
-                        memory[data_ptr+1] += memory[data_ptr]
-                        memory[data_ptr] = 0
-                        ptr += 57
-                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[-<->]':
-                        patterns[1].add(ptr)
-                        continue
-                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[>+<-]':
-                        patterns[3].add(ptr)
-                        continue
-                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[<+>-]':
-                        patterns[4].add(ptr)
-                        continue
-                    elif len(code) >= ptr + 19 and code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
-                        patterns[2].add(ptr)
-                        continue
-                    elif len(code) >= ptr + 58 and code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
-                        patterns[6].add(ptr)
-                        continue
+                ptr += 1
+        functions[ptr] = lb_default
+        lb_default()
+symbols['['] = lb
 
-                    elif ptr not in calc_rejects:
-                        success = False
-                        mem_minus = []
-                        mem_plus = []
-                        shift = 0
-                        new_ptr = ptr
-                        base_changes = 0
-                        while True:
-                            new_ptr += 1
-                            if code[new_ptr] == ">":
-                                shift += 1
-                            elif code[new_ptr] == "<":
-                                shift -= 1
-                            elif code[new_ptr] == "+":
-                                mem_plus.append(data_ptr+shift)
-                            elif code[new_ptr] == "-":
-                                if shift == 0:
-                                    base_changes += 1
-                                mem_minus.append(data_ptr+shift)
-                            elif code[new_ptr] == "]" and shift == 0 and (mem_plus or mem_minus):
-                                success = True
-                                break
-                            else:
-                                break
-                        if success:
-                            value = memory[data_ptr]//base_changes
-                            for cptr in mem_minus:
-                                while cptr >= len(memory):
-                                    memory.append(0)
-                                memory[cptr] = (memory[cptr] - value) % 256
-                            for cptr in mem_plus:
-                                while cptr >= len(memory):
-                                    memory.append(0)
-                                memory[cptr] = (memory[cptr] + value) % 256
-                            memory[data_ptr] = 0
-                            calc_brackets[ptr] = (mem_plus, mem_minus, base_changes, data_ptr, new_ptr)
-                            ptr = new_ptr
-                        else:
-                            calc_rejects.add(ptr)
-                            skip_detection.add(ptr)
-                    else:
-                        skip_detection.add(ptr)
-            ptr += 1
-        elif code[ptr] == ']':
-            if memory[data_ptr] != 0:
-                if ptr in bracket_partners:
-                    ptr = bracket_partners[ptr]
-                else:
-                    start = ptr
-                    close_brackets = 1
-                    while close_brackets > 0:
-                        ptr -= 1
-                        if code[ptr] == '[':
-                            close_brackets -= 1
-                        elif code[ptr] == ']':
-                            close_brackets += 1
-                    bracket_partners[start] = ptr
-                    bracket_partners[ptr] = start
-            ptr += 1
-        elif code[ptr] == '.':
-            if memory[data_ptr] == 0:
-                till()
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] == 1:
-                harvest()
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] == 2:
-                clear()
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] >= 4 and memory[data_ptr] < 8:
-                move(moves[memory[data_ptr]])
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] >= 32 and memory[data_ptr] < 36:
-                swap(swap_moves[memory[data_ptr]])
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] >= 64 and memory[data_ptr] < 67:
-                use_item(items[memory[data_ptr]],1)
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] == 68:
-                substance = get_world_size() * 2**(num_unlocked(Unlocks.Mazes) - 1)
-                use_item(Items.Weird_Substance, substance)
-            elif memory[data_ptr] == 69:
-                change_hat(Hats.Straw_Hat)
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] == 70:
-                change_hat(Hats.Dinosaur_Hat)
-                plant_info = []
-                info_ptr = 0
-            elif memory[data_ptr] >= 128 and memory[data_ptr] < 135:
-                plant(plants_write[memory[data_ptr]])
-                plant_info = []
-                info_ptr = 0
-            ptr += 1
-        elif code[ptr] == ',':
-            if get_entity_type() == Entities.Dead_Pumpkin:
-                plant_info = []
-                info_ptr = 0
-            if len(plant_info) == 0:
-                plant_type = get_entity_type()
-                if plant_type == Entities.Hedge or plant_type == Entities.Treasure: #in mazes return chest coordinates and available moves
-                    x = get_pos_x()
-                    y = get_pos_y()
-                    available_moves = 0
-                    if can_move(North):
-                        available_moves += 1
-                    if can_move(East):
-                        available_moves += 2
-                    if can_move(South):
-                        available_moves += 4
-                    if can_move(West):
-                        available_moves += 8
-                    plant_info.append(left_shift(plants_read[plant_type],2))
-                    plant_info.append(x)
-                    plant_info.append(y)
-                    plant_info.append(available_moves)
-                elif plant_type == None: #when on an empty tile return move directions for use in dinosaur code
-                    water_level = get_water() * 4 // 1
-                    if water_level == 4:
-                        water_level = 3
-                    tilled = 1
-                    harvestable = 0
-                    water_level_shifted = left_shift(water_level,6)
-                    plant_type_shifted = 0
-                    first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
-                    plant_info.append(first_byte)
-                    available_moves = 0
-                    if can_move(North):
-                        available_moves += 1
-                    if can_move(East):
-                        available_moves += 2
-                    if can_move(South):
-                        available_moves += 4
-                    if can_move(West):
-                        available_moves += 8
-                    plant_info.append(available_moves)
-                elif plant_type == Entities.Apple: #When on apple first return possible moves to emulate empty tile, then return next location
-                    water_level = get_water() * 4 // 1
-                    if water_level == 4:
-                        water_level = 3
-                    tilled = 1
-                    harvestable = 0
-                    water_level_shifted = left_shift(water_level,6)
-                    plant_type_shifted = left_shift(plants_read[plant_type],2)
-                    first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
-                    plant_info.append(first_byte)
-                    x, y = measure()
-                    available_moves = 0
-                    if can_move(North):
-                        available_moves += 1
-                    if can_move(East):
-                        available_moves += 2
-                    if can_move(South):
-                        available_moves += 4
-                    if can_move(West):
-                        available_moves += 8
-                    plant_info.append(available_moves)
-                    plant_info.append(x)
-                    plant_info.append(y)
-                else:
-                    water_level = get_water() * 4 // 1
-                    if water_level == 4:
-                        water_level = 3
-                    tilled = 0
-                    if get_ground_type() == Grounds.Soil:
-                        tilled = 1
-                    harvestable = 0
-                    if can_harvest():
-                        harvestable = 1
-                    water_level_shifted = left_shift(water_level,6)
-                    plant_type_shifted = left_shift(plants_read[plant_type],2)
-                    first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
-                    plant_info.append(first_byte)
-            elif len(plant_info) == 1:
-                plant_type = get_entity_type()
-                if plant_type in plants_with_companions:
-                    companion, (x, y) = get_companion()
-                    plant_info.append(plants_read[companion])
-                    plant_info.append(x)
-                    plant_info.append(y)
-                elif plant_type in plants_with_values:
-                    center = measure()
-                    north = measure(North)
-                    east = measure(East)
-                    south = measure(South)
-                    west = measure(West)
-                    plant_info.append(center)
-                    plant_info.append(north)
-                    plant_info.append(east)
-                    plant_info.append(south)
-                    plant_info.append(west)
-                elif plant_type == Entities.Pumpkin:
-                    center = measure()
-                    if center not in pumpkin_numbers:
-                        if len(pumpkins) == 255:
-                            old_pumpkin = pumpkins[next_pumpkin_number]
-                            pumpkin_numbers.pop(old_pumpkin)
-                            pumpkins[next_pumpkin_number] = center
-                            pumpkin_numbers[center] = next_pumpkin_number
-                        else:
-                            pumpkin_numbers[center] = next_pumpkin_number
-                            pumpkins.append(center)
-                        next_pumpkin_number = (next_pumpkin_number + 1) % 255
-                    plant_info.append(pumpkin_numbers[center])  
-                    north = measure(North)
-                    if north not in pumpkin_numbers:
-                        if len(pumpkins) == 255:
-                            old_pumpkin = pumpkins[next_pumpkin_number]
-                            pumpkin_numbers.pop(old_pumpkin)
-                            pumpkins[next_pumpkin_number] = north
-                            pumpkin_numbers[north] = next_pumpkin_number
-                        else:
-                            pumpkin_numbers[north] = next_pumpkin_number
-                            pumpkins.append(north)
-                        next_pumpkin_number = (next_pumpkin_number + 1) % 255
-                    plant_info.append(pumpkin_numbers[north])  
-                    east = measure(East)
-                    if east not in pumpkin_numbers:
-                        if len(pumpkins) == 255:
-                            old_pumpkin = pumpkins[next_pumpkin_number]
-                            pumpkin_numbers.pop(old_pumpkin)
-                            pumpkins[next_pumpkin_number] = east
-                            pumpkin_numbers[east] = next_pumpkin_number
-                        else:
-                            pumpkin_numbers[east] = next_pumpkin_number
-                            pumpkins.append(east)
-                        next_pumpkin_number = (next_pumpkin_number + 1) % 255
-                    plant_info.append(pumpkin_numbers[east])  
-                    south = measure(South)
-                    if south not in pumpkin_numbers:
-                        if len(pumpkins) == 255:
-                            old_pumpkin = pumpkins[next_pumpkin_number]
-                            pumpkin_numbers.pop(old_pumpkin)
-                            pumpkins[next_pumpkin_number] = south
-                            pumpkin_numbers[south] = next_pumpkin_number
-                        else:
-                            pumpkin_numbers[south] = next_pumpkin_number
-                            pumpkins.append(south)
-                        next_pumpkin_number = (next_pumpkin_number + 1) % 255
-                    plant_info.append(pumpkin_numbers[south])  
-                    west = measure(West)
-                    if west not in pumpkin_numbers: 
-                        if len(pumpkins) == 255:
-                            old_pumpkin = pumpkins[next_pumpkin_number]
-                            pumpkin_numbers.pop(old_pumpkin)
-                            pumpkins[next_pumpkin_number] = west
-                            pumpkin_numbers[west] = next_pumpkin_number
-                        else:
-                            pumpkin_numbers[west] = next_pumpkin_number
-                            pumpkins.append(west)
-                        next_pumpkin_number = (next_pumpkin_number + 1) % 255
-                    plant_info.append(pumpkin_numbers[west])
-            memory[data_ptr] = plant_info[info_ptr]
-            info_ptr = info_ptr + 1
-            if len(plant_info) > 1 and info_ptr >= len(plant_info):
-                plant_info = []
-                info_ptr = 0
-            ptr += 1
+def rb():
+    global functions
+    global ptr
+    def rb_default():
+        global memory
+        global ptr
+        global data_ptr
+        global code
+        global bracket_partners
+        if memory[data_ptr] != 0:
+            if ptr in bracket_partners:
+                ptr = bracket_partners[ptr]
+            else:
+                start = ptr
+                close_brackets = 1
+                while close_brackets > 0:
+                    ptr -= 1
+                    if code[ptr] == '[':
+                        close_brackets -= 1
+                    elif code[ptr] == ']':
+                        close_brackets += 1
+                bracket_partners[start] = ptr
+                bracket_partners[ptr] = start
+        ptr += 1
+    functions[ptr] = rb_default
+    rb_default()
+symbols[']'] = rb
+
+def d():
+    global memory
+    global data_ptr
+    global ptr
+    global plant_info
+    global info_ptr
+    if memory[data_ptr] == 0:
+        till()
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] == 1:
+        harvest()
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] == 2:
+        clear()
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] >= 4 and memory[data_ptr] < 8:
+        move(moves[memory[data_ptr]])
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] >= 128 and memory[data_ptr] < 135:
+        plant(plants_write[memory[data_ptr]])
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] >= 64 and memory[data_ptr] < 67:
+        use_item(items[memory[data_ptr]],1)
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] >= 32 and memory[data_ptr] < 36:
+        swap(swap_moves[memory[data_ptr]])
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] == 68:
+        substance = get_world_size() * 2**(num_unlocked(Unlocks.Mazes) - 1)
+        use_item(Items.Weird_Substance, substance)
+    elif memory[data_ptr] == 69:
+        change_hat(Hats.Straw_Hat)
+        plant_info = []
+        info_ptr = 0
+    elif memory[data_ptr] == 70:
+        change_hat(Hats.Dinosaur_Hat)
+        plant_info = []
+        info_ptr = 0
+    ptr += 1
+symbols['.'] = d
+
+def c():
+    global memory
+    global data_ptr
+    global ptr
+    global plant_info
+    global info_ptr
+    global moves
+    if get_entity_type() == Entities.Dead_Pumpkin:
+        plant_info = []
+        info_ptr = 0
+    if len(plant_info) == 0:
+        plant_type = get_entity_type()
+        if plant_type == Entities.Hedge or plant_type == Entities.Treasure: #in mazes return chest coordinates and available moves
+            x = get_pos_x()
+            y = get_pos_y()
+            available_moves = 0
+            if can_move(North):
+                available_moves += 1
+            if can_move(East):
+                available_moves += 2
+            if can_move(South):
+                available_moves += 4
+            if can_move(West):
+                available_moves += 8
+            plant_info.append(left_shift(plants_read[plant_type],2))
+            plant_info.append(x)
+            plant_info.append(y)
+            plant_info.append(available_moves)
+        elif plant_type == None: #when on an empty tile return move directions for use in dinosaur code
+            water_level = get_water() * 4 // 1
+            if water_level == 4:
+                water_level = 3
+            tilled = 1
+            harvestable = 0
+            water_level_shifted = left_shift(water_level,6)
+            plant_type_shifted = 0
+            first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
+            plant_info.append(first_byte)
+            available_moves = 0
+            if can_move(North):
+                available_moves += 1
+            if can_move(East):
+                available_moves += 2
+            if can_move(South):
+                available_moves += 4
+            if can_move(West):
+                available_moves += 8
+            plant_info.append(available_moves)
+        elif plant_type == Entities.Apple: #When on apple first return possible moves to emulate empty tile, then return next location
+            water_level = get_water() * 4 // 1
+            if water_level == 4:
+                water_level = 3
+            tilled = 1
+            harvestable = 0
+            water_level_shifted = left_shift(water_level,6)
+            plant_type_shifted = left_shift(plants_read[plant_type],2)
+            first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
+            plant_info.append(first_byte)
+            x, y = measure()
+            available_moves = 0
+            if can_move(North):
+                available_moves += 1
+            if can_move(East):
+                available_moves += 2
+            if can_move(South):
+                available_moves += 4
+            if can_move(West):
+                available_moves += 8
+            plant_info.append(available_moves)
+            plant_info.append(x)
+            plant_info.append(y)
         else:
-            ptr += 1
-        
+            water_level = get_water() * 4 // 1
+            if water_level == 4:
+                water_level = 3
+            tilled = 0
+            if get_ground_type() == Grounds.Soil:
+                tilled = 1
+            harvestable = 0
+            if can_harvest():
+                harvestable = 1
+            water_level_shifted = left_shift(water_level,6)
+            plant_type_shifted = left_shift(plants_read[plant_type],2)
+            first_byte = water_level_shifted + plant_type_shifted + left_shift(tilled,1) + harvestable
+            plant_info.append(first_byte)
+    elif len(plant_info) == 1:
+        plant_type = get_entity_type()
+        if plant_type in plants_with_companions:
+            companion, (x, y) = get_companion()
+            plant_info.append(plants_read[companion])
+            plant_info.append(x)
+            plant_info.append(y)
+        elif plant_type in plants_with_values:
+            center = measure()
+            north = measure(North)
+            east = measure(East)
+            south = measure(South)
+            west = measure(West)
+            plant_info.append(center)
+            plant_info.append(north)
+            plant_info.append(east)
+            plant_info.append(south)
+            plant_info.append(west)
+        elif plant_type == Entities.Pumpkin:
+            center = measure()
+            if center not in pumpkin_numbers:
+                if len(pumpkins) == 255:
+                    old_pumpkin = pumpkins[next_pumpkin_number]
+                    pumpkin_numbers.pop(old_pumpkin)
+                    pumpkins[next_pumpkin_number] = center
+                    pumpkin_numbers[center] = next_pumpkin_number
+                else:
+                    pumpkin_numbers[center] = next_pumpkin_number
+                    pumpkins.append(center)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+            plant_info.append(pumpkin_numbers[center])  
+            north = measure(North)
+            if north not in pumpkin_numbers:
+                if len(pumpkins) == 255:
+                    old_pumpkin = pumpkins[next_pumpkin_number]
+                    pumpkin_numbers.pop(old_pumpkin)
+                    pumpkins[next_pumpkin_number] = north
+                    pumpkin_numbers[north] = next_pumpkin_number
+                else:
+                    pumpkin_numbers[north] = next_pumpkin_number
+                    pumpkins.append(north)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+            plant_info.append(pumpkin_numbers[north])  
+            east = measure(East)
+            if east not in pumpkin_numbers:
+                if len(pumpkins) == 255:
+                    old_pumpkin = pumpkins[next_pumpkin_number]
+                    pumpkin_numbers.pop(old_pumpkin)
+                    pumpkins[next_pumpkin_number] = east
+                    pumpkin_numbers[east] = next_pumpkin_number
+                else:
+                    pumpkin_numbers[east] = next_pumpkin_number
+                    pumpkins.append(east)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+            plant_info.append(pumpkin_numbers[east])  
+            south = measure(South)
+            if south not in pumpkin_numbers:
+                if len(pumpkins) == 255:
+                    old_pumpkin = pumpkins[next_pumpkin_number]
+                    pumpkin_numbers.pop(old_pumpkin)
+                    pumpkins[next_pumpkin_number] = south
+                    pumpkin_numbers[south] = next_pumpkin_number
+                else:
+                    pumpkin_numbers[south] = next_pumpkin_number
+                    pumpkins.append(south)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+            plant_info.append(pumpkin_numbers[south])  
+            west = measure(West)
+            if west not in pumpkin_numbers: 
+                if len(pumpkins) == 255:
+                    old_pumpkin = pumpkins[next_pumpkin_number]
+                    pumpkin_numbers.pop(old_pumpkin)
+                    pumpkins[next_pumpkin_number] = west
+                    pumpkin_numbers[west] = next_pumpkin_number
+                else:
+                    pumpkin_numbers[west] = next_pumpkin_number
+                    pumpkins.append(west)
+                next_pumpkin_number = (next_pumpkin_number + 1) % 255
+            plant_info.append(pumpkin_numbers[west])
+    memory[data_ptr] = plant_info[info_ptr]
+    info_ptr = info_ptr + 1
+    if len(plant_info) > 1 and info_ptr >= len(plant_info):
+        plant_info = []
+        info_ptr = 0
+    ptr += 1
+symbols[','] = c
+
+def the_farmer_was_brainfucked(input):
+    global code
+    global code_length
+    global ptr
+    global symbols
+    global functions
+    code = input
+    code_length = len(code)
+    ptr = 0
+    while ptr < code_length:
+        if ptr in functions:
+            functions[ptr]()
+        elif code[ptr] in symbols:
+            symbols[code[ptr]]()
+
 if __name__ == "__main__":
     set_world_size(8)
     # hay code
@@ -545,5 +655,3 @@ if __name__ == "__main__":
     # maze code
     treasure = ">>>>>>>>>>>>>++++++++[>++++++++++++++++<-]>+>>++++++++[<++++++++>-]<++++>+<<<<<<<<<<<<<<<<+[>>>>>>>>>>>>>>.>.<<<<<<<<<<<<<<,>++++[<---------->-]<[[-]>,,,>++<[->>>>>[-<]+<--[++<--]++<]>[-]>[>>>>>>>+++++++<<<<<<<-]>[>>>>>++++++<<<<<-]>[>>>+++++<<<-]>[>++++<-]>>>>>>[-]<?[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]>[<+>-]<<<<<[.>[-]>[-]>[-]>+++<<<<[-]]>[.>[-]>[-]<<[-]]>[.>[-]>+<<[-]]>[.>++<[-]]>[>+<<<<<<<<<<+>>>>>>>>>-]<<<<<<<<++++<>>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]>[>-<[-]]>+[>>>>>>>----<<<<<<<[-]]>>>>>>>>[<+>-]<<<<<<<<<<<<,>++++[<---------->-]<]>>>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<]"
     the_farmer_was_brainfucked(treasure)
-
-    
