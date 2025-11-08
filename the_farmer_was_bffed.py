@@ -91,7 +91,7 @@ def the_farmer_was_brainfucked(code):
     mem_moves = dict()
     mem_changes = dict()
     patterns = dict()
-    tested = set()
+    skip_detection = set()
     patterns[0] = set()
     patterns[1] = set()
     patterns[2] = set()
@@ -100,6 +100,9 @@ def the_farmer_was_brainfucked(code):
     patterns[5] = set()
     patterns[6] = set()
     while ptr < code_length:
+        # stop point for leaderboard so why not?
+        #if num_items(Items.Gold) >= 616448:
+        #    return
         if code[ptr] == '?':
             pass #put breakpoint here
             ptr += 1
@@ -108,7 +111,7 @@ def the_farmer_was_brainfucked(code):
                 data_change, ptr = mem_moves[ptr]
                 data_ptr += data_change
             # hardcoded comparison because otherwise it takes a full minute
-            elif ptr in patterns[0] or (code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]"):
+            elif ptr not in patterns[5] and (ptr in patterns[0] or (len(code) >= ptr + 63 and code[ptr+3] == '[' and code[ptr:ptr+63] == ">>>[-]>[-]<<[-]<<[>>>+<<[->>[-]>+<<<]>>[-<+>]>[-<<<+>>>]<<<-<-]")):
                 patterns[0].add(ptr)
                 pos0 = 0
                 pos1 = memory[data_ptr] - memory[data_ptr+1]
@@ -124,7 +127,7 @@ def the_farmer_was_brainfucked(code):
                 memory[data_ptr+3] = pos4
                 memory[data_ptr+4] = pos5
                 ptr = ptr + 63
-            elif (ptr in patterns[5] or (code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]")) and memory[data_ptr] < 16 and memory[data_ptr+1] == 0:
+            elif (ptr in patterns[5] or (len(code) >= ptr + 30 and code[ptr+4] == '[' and code[ptr:ptr+30] == ">++<[->>>>>[-<]+<--[++<--]++<]")) and memory[data_ptr] < 16 and memory[data_ptr+1] == 0:
                 patterns[5].add(ptr)
                 if memory[data_ptr] %2 == 1:
                     memory[data_ptr+5] = (memory[data_ptr+5] + 1) % 256
@@ -204,7 +207,7 @@ def the_farmer_was_brainfucked(code):
             else:
                 if ptr in calc_brackets and calc_brackets[ptr][3] != data_ptr:
                     calc_rejects.add(ptr)
-                if ptr in calc_brackets and ptr not in calc_rejects:
+                elif ptr in calc_brackets and ptr not in calc_rejects:
                     mem_plus, mem_minus, base_changes, base_ptr, new_ptr = calc_brackets[ptr]
                     value = memory[base_ptr] // base_changes
                     for cptr in mem_minus:
@@ -215,7 +218,7 @@ def the_farmer_was_brainfucked(code):
                 elif code[ptr+1] == '-' and code[ptr+2] == ']':
                     memory[data_ptr] = 0
                     ptr += 2
-                elif ptr not in bracket_partners or ptr not in tested:
+                elif ptr not in bracket_partners or ptr not in skip_detection:
                     if ptr in patterns[1]:
                         memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
                         memory[data_ptr] = 0
@@ -242,37 +245,21 @@ def the_farmer_was_brainfucked(code):
                         memory[data_ptr+1] += memory[data_ptr]
                         memory[data_ptr] = 0
                         ptr += 57
-                    elif code[ptr:ptr+6] == '[-<->]':
+                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[-<->]':
                         patterns[1].add(ptr)
-                        memory[data_ptr - 1] = (memory[data_ptr - 1] - memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif code[ptr:ptr+6] == '[>+<-]':
+                        continue
+                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[>+<-]':
                         patterns[3].add(ptr)
-                        memory[data_ptr + 1] = (memory[data_ptr + 1] + memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif code[ptr:ptr+6] == '[<+>-]':
+                        continue
+                    elif len(code) >= ptr + 6 and code[ptr:ptr+6] == '[<+>-]':
                         patterns[4].add(ptr)
-                        memory[data_ptr - 1] = (memory[data_ptr-1] + memory[data_ptr]) % 256
-                        memory[data_ptr] = 0
-                        ptr += 5
-                    elif code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
+                        continue
+                    elif len(code) >= ptr + 19 and code[ptr:ptr+19] == '[>+>+<<-]>>[<<+>>-]':
                         patterns[2].add(ptr)
-                        #copy value to next memory cell
-                        memory[data_ptr + 1] = memory[data_ptr] + memory[data_ptr+1]
-                        memory[data_ptr] = memory[data_ptr] + memory[data_ptr+2]
-                        memory[data_ptr + 2] = 0
-                        data_ptr += 2
-                        ptr += 18
-                    elif code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
+                        continue
+                    elif len(code) >= ptr + 58 and code[ptr:ptr+58] == "[<<<<[<+>-]>[<+>-]>[<+>-]>[<+>-]<<<<[>>>>+<<<<-]>>>>>>+<-]":
                         patterns[6].add(ptr)
-                        for _ in range(memory[data_ptr]):
-                            (tmp0, tmp1, tmp2, tmp3) = (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1])  
-                            (memory[data_ptr-4], memory[data_ptr-3], memory[data_ptr-2], memory[data_ptr-1]) = (tmp1, tmp2, tmp3, tmp0)
-                        memory[data_ptr+1] += memory[data_ptr]
-                        memory[data_ptr] = 0
-                        ptr += 57
+                        continue
 
                     elif ptr not in calc_rejects:
                         success = False
@@ -313,7 +300,9 @@ def the_farmer_was_brainfucked(code):
                             ptr = new_ptr
                         else:
                             calc_rejects.add(ptr)
-                    tested.add(ptr)
+                            skip_detection.add(ptr)
+                    else:
+                        skip_detection.add(ptr)
             ptr += 1
         elif code[ptr] == ']':
             if memory[data_ptr] != 0:
